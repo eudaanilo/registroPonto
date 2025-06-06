@@ -88,7 +88,8 @@ def menu():
         print("\n=== Sistema de Registro de Ponto ===")
         print("1. Registrar Ponto")
         print("2. Visualizar Registros")
-        print("3. Sair")
+        print("3. Limpar Registros")
+        print("4. Sair")
         opcao = input("Escolha uma opção: ")
 
         if opcao == "1":
@@ -96,6 +97,8 @@ def menu():
         elif opcao == "2":
             visualizar_registros()
         elif opcao == "3":
+            limpar_registros()
+        elif opcao == "4":
             print("Saindo do sistema.")
             break
         else:
