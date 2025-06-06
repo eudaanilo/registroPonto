@@ -1,9 +1,7 @@
-import Entrar
 import csv
 from datetime import datetime
-from collections import defaultdict
 
-ARQUIVO_REGISTRO = "registro_ponto.csv"
+ARQUIVO_REGISTRO = "registros.csv"
 
 USUARIOS = {
     "admin": {"senha": "admin123", "tipo": "admin"},
@@ -11,184 +9,102 @@ USUARIOS = {
     "livia": {"senha": "abcd", "tipo": "funcionario"},
 }
 
-usuario_logado = Entrar.login()
-if not usuario_logado:
-    print("Login falhou. Encerrando o programa.")
-    exit()
-
-def registrar_ponto():
-    usuario_logado["nome"]  # nome da pessoa logada
-    usuario_logado["tipo"]  # "admin" ou "funcionario"
-    nome = input("Digite o nome do funcionário: ").strip()
+def login():
+    print("=== LOGIN ===")
+    nome = input("Usuário (ou digite 'voltar' para sair): ").strip().lower()
+    if nome == 'voltar':
+        return None
     
-    print("\nEscolha o tipo de registro:")
-    print("1. Primeira Entrada")
-    print("2. Primeira Saída")
-    print("3. Segunda Entrada")
-    print("4. Segunda Saída")
-    
-    opcao = input("Opção: ")
-    tipos = {
-        "1": "Primeira Entrada",
-        "2": "Primeira Saída",
-        "3": "Segunda Entrada",
-        "4": "Segunda Saída"
-    }
+    senha = input("Senha (ou digite 'voltar' para sair): ").strip()
+    if senha == 'voltar':
+        return None
 
-    if opcao not in tipos:
+    if nome in USUARIOS and USUARIOS[nome]["senha"] == senha:
+        print(f"Bem-vindo, {nome.title()}!")
+        return {"nome": nome, "tipo": USUARIOS[nome]["tipo"]}
+    else:
+        print("Credenciais inválidas.")
+        return False  # sinaliza login falhou
+
+def registrar_ponto(usuario):
+    nome = usuario["nome"].title()
+    tipo = usuario["tipo"]
+
+    data = datetime.now().strftime("%d/%m/%Y")
+    hora = datetime.now().strftime("%H:%M:%S")
+
+    print("\nTipos de ponto:")
+    opcoes = [
+        "Primeira Entrada",
+        "Primeira Saída",
+        "Segunda Entrada",
+        "Segunda Saída"
+    ]
+
+    for i, opcao in enumerate(opcoes, 1):
+        print(f"{i}. {opcao}")
+
+    escolha = input("Escolha o tipo de ponto: ").strip()
+    if not escolha.isdigit() or not (1 <= int(escolha) <= 4):
         print("Opção inválida.")
         return
-    
-    tipo = tipos[opcao]
-    agora = datetime.now()
-    data = agora.strftime("%d/%m/%Y")
-    hora = agora.strftime("%H:%M:%S")
-    
-    registros_dia = []
+
+    tipo_ponto = opcoes[int(escolha) - 1]
+
+    # Valida ordem dos registros
+    registros_usuario = []
     try:
-        with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
-            leitor = csv.reader(arquivo)
-            for linha in leitor:
-                nome_reg, data_reg, hora_reg, tipo_reg = linha
-                if nome_reg == nome and data_reg == data:
-                    registros_dia.append(tipo_reg)
-    except FileNotFoundError:
-        pass
-
-    if tipo == "Primeira Saída" and "Primeira Entrada" not in registros_dia:
-        print("Erro: não é possível registrar Primeira Saída sem Primeira Entrada.")
-        return
-    if tipo == "Segunda Entrada" and "Primeira Saída" not in registros_dia:
-        print("Erro: não é possível registrar Segunda Entrada sem Primeira Saída.")
-        return
-    if tipo == "Segunda Saída" and "Segunda Entrada" not in registros_dia:
-        print("Erro: não é possível registrar Segunda Saída sem Segunda Entrada.")
-        return
-
-    with open(ARQUIVO_REGISTRO, mode='a', newline='') as arquivo:
-        writer = csv.writer(arquivo)
-        writer.writerow([nome, data, hora, tipo])
-    
-    print(f"{tipo} registrada para {nome} em {data} às {hora}.")
-
-def visualizar_registros():
-    try:
-        with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
-            leitor = list(csv.reader(arquivo))
-            if not leitor:
-                print("Não há registros.")
-                return
-
-            registros = defaultdict(list)
-            for linha in leitor:
-                nome, data, hora, tipo = linha
-                registros[nome].append((data, hora, tipo))
-
-            for nome in sorted(registros.keys()):
-                print(f"\n== {nome.upper()} ==")
-                for data, hora, tipo in registros[nome]:
-                    print(f"{nome:<20} {data:<12} {hora:<10} {tipo:<20}")
-
-    except FileNotFoundError:
-        print("Não há registros.")
-
-def limpar_registros():
-    senha_admin = "admin123"  # Altere conforme necessário
-
-    print("\n⚠️  Função de limpeza — acesso apenas para ADMINISTRADORES.")
-    senha = input("Digite a senha de administrador: ").strip()
-
-    if senha != senha_admin:
-        print("Acesso negado⚠️")
-        return
-
-    # Verifica se há registros no arquivo
-    try:
-        with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
-            leitor = list(csv.reader(arquivo))
-            if not leitor:
-                print("Não há registros no sistema.")
-                return
-    except FileNotFoundError:
-        print("Não há registros no sistema.")
-        return
-
-    print("\n=== Limpeza de Registros ===")
-    print("1. Limpar TODOS os registros")
-    print("2. Limpar registros de um FUNCIONÁRIO")
-    print("3. Limpar registros de um FUNCIONÁRIO em uma DATA específica")
-    print("4. Cancelar")
-
-    escolha = input("Escolha uma opção: ").strip()
-
-    if escolha == "1":
-        confirmacao = input("Tem certeza que deseja apagar TODOS os registros? (s/n): ").strip().lower()
-        if confirmacao == 's':
-            with open(ARQUIVO_REGISTRO, mode='w', newline='') as arquivo:
-                pass
-            print("Todos os registros foram apagados com sucesso.")
-        else:
-            print("Ação cancelada.")
-
-    elif escolha == "2":
-        nome = input("Digite o nome do funcionário: ").strip()
-        registros_existem = False
-        novos_registros = []
-
-        with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
-            leitor = csv.reader(arquivo)
-            for linha in leitor:
-                if linha[0].lower() == nome.lower():
-                    registros_existem = True
-                else:
-                    novos_registros.append(linha)
-
-        if not registros_existem:
-            print("Não há registros para esse funcionário.")
-            return
-
-        with open(ARQUIVO_REGISTRO, mode='w', newline='') as arquivo:
-            escritor = csv.writer(arquivo)
-            escritor.writerows(novos_registros)
-        print(f"Registros do funcionário '{nome}' foram apagados com sucesso.")
-
-    elif escolha == "3":
-        nome = input("Digite o nome do funcionário: ").strip()
-        data = input("Digite a data (dd/mm/aaaa): ").strip()
-        registros_existem = False
-        novos_registros = []
-
         with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
             leitor = csv.reader(arquivo)
             for linha in leitor:
                 if linha[0].lower() == nome.lower() and linha[1] == data:
-                    registros_existem = True
-                else:
-                    novos_registros.append(linha)
+                    registros_usuario.append(linha[3])
+    except FileNotFoundError:
+        pass
 
-        if not registros_existem:
-            print("Não há registros desse funcionário na data informada.")
+    regras = {
+        "Primeira Entrada": [],
+        "Primeira Saída": ["Primeira Entrada"],
+        "Segunda Entrada": ["Primeira Saída"],
+        "Segunda Saída": ["Segunda Entrada"]
+    }
+
+    requisitos = regras[tipo_ponto]
+    for requisito in requisitos:
+        if requisito not in registros_usuario:
+            print(f"Erro: não é possível registrar '{tipo_ponto}' antes de '{requisito}'.")
             return
 
-        with open(ARQUIVO_REGISTRO, mode='w', newline='') as arquivo:
-            escritor = csv.writer(arquivo)
-            escritor.writerows(novos_registros)
-        print(f"Registros de '{nome}' na data '{data}' foram apagados com sucesso.")
+    with open(ARQUIVO_REGISTRO, mode='a', newline='') as arquivo:
+        escritor = csv.writer(arquivo)
+        escritor.writerow([nome, data, hora, tipo_ponto])
+    print("Ponto registrado com sucesso.")
 
-    else:
-        print("Ação cancelada.")
+def exibir_registros():
+    try:
+        with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
+            leitor = csv.reader(arquivo)
+            registros_por_usuario = {}
+            for linha in leitor:
+                usuario = linha[0]
+                registros_por_usuario.setdefault(usuario, []).append(linha)
 
-def editar_registro():
-    senha_admin = "admin123"
-    print("\n⚙️  Função de Edição de Registros — Apenas para Administradores")
-    
-    senha = input("Digite a senha de administrador: ").strip()
-    if senha != senha_admin:
-        print("Acesso negado.")
+            if not registros_por_usuario:
+                print("Não há registros.")
+                return
+
+            for usuario, registros in registros_por_usuario.items():
+                print(f"\n== {usuario.upper()} ==")
+                for reg in registros:
+                    print(f"{reg[0]:<20} {reg[1]}   {reg[2]}   {reg[3]}")
+    except FileNotFoundError:
+        print("Não há registros.")
+
+def editar_registro(usuario):
+    if usuario["tipo"] != "admin":
+        print("Acesso negado. Apenas administradores podem editar registros.")
         return
-    
-    nome_admin = input("Digite seu nome de administrador: ").strip()
-    
+
     nome_funcionario = input("Digite o nome do funcionário: ").strip()
     data_alvo = input("Digite a data do registro (dd/mm/aaaa): ").strip()
 
@@ -199,7 +115,6 @@ def editar_registro():
         print("Arquivo de registros não encontrado.")
         return
 
-    # Encontrar registros do funcionário na data escolhida
     encontrados = []
     for i, linha in enumerate(leitor):
         if linha[0].lower() == nome_funcionario.lower() and linha[1] == data_alvo:
@@ -225,39 +140,48 @@ def editar_registro():
     indice_original, registro = encontrados[escolha - 1]
     nova_hora = input("Digite a nova hora (hh:mm:ss): ").strip()
     justificativa = input("Digite a justificativa da alteração: ").strip()
-
     hora_atual = datetime.now().strftime("%H:%M:%S")
-    
+
     registro[2] = nova_hora
-    registro[3] += f" (Editado por: {nome_admin} às {hora_atual}. Justificativa: {justificativa})"
+    registro[3] += f" (Editado por: {usuario['nome']} às {hora_atual}. Justificativa: {justificativa})"
     leitor[indice_original] = registro
 
     with open(ARQUIVO_REGISTRO, mode='w', newline='') as arquivo:
         escritor = csv.writer(arquivo)
         escritor.writerows(leitor)
 
-    print("✅ Registro atualizado com sucesso.")
+    print("Registro atualizado com sucesso.")
 
 def menu():
+    usuario = None
+    while usuario is None:
+        usuario = login()
+        if usuario is None:  # Usuário digitou 'voltar' para sair
+            print("Saindo do programa.")
+            return
+        elif usuario is False:  # Login falhou, tenta novamente
+            usuario = None
+
     while True:
-        print("\n=== Sistema de Registro de Ponto ===")
-        print("1. Registrar Ponto")
-        print("2. Visualizar Registros")
-        print("3. Limpar Registros")
+        print("\n===== MENU PRINCIPAL =====")
+        print("1. Registrar ponto")
+        print("2. Visualizar registros")
+        print("3. Editar registro (Admin)")
         print("4. Sair")
-        opcao = input("Escolha uma opção: ")
+
+        opcao = input("Escolha uma opção: ").strip()
 
         if opcao == "1":
-            registrar_ponto()
+            registrar_ponto(usuario)
         elif opcao == "2":
-            visualizar_registros()
+            exibir_registros()
         elif opcao == "3":
-            limpar_registros()
+            editar_registro(usuario)
         elif opcao == "4":
-            print("Saindo do sistema.")
+            print("Saindo...")
             break
         else:
-            print("Opção inválida. Tente novamente.")
+            print("Opção inválida.")
 
 if __name__ == "__main__":
     menu()
