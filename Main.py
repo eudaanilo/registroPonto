@@ -60,7 +60,11 @@ def registrar_ponto():
 def visualizar_registros():
     try:
         with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
-            leitor = csv.reader(arquivo)
+            leitor = list(csv.reader(arquivo))
+            if not leitor:
+                print("Não há registros.")
+                return
+
             registros = defaultdict(list)
             for linha in leitor:
                 nome, data, hora, tipo = linha
@@ -72,14 +76,91 @@ def visualizar_registros():
                     print(f"{nome:<20} {data:<12} {hora:<10} {tipo:<20}")
 
     except FileNotFoundError:
-        print("Nenhum registro encontrado.")
+        print("Não há registros.")
 
 def limpar_registros():
-    confirmacao = input("Tem certeza que deseja apagar TODOS os registros? (s/n): ").strip().lower()
-    if confirmacao == 's':
+    senha_admin = "admin123"  # Altere conforme necessário
+
+    print("\n⚠️  Função de limpeza — acesso apenas para ADMINISTRADORES.")
+    senha = input("Digite a senha de administrador: ").strip()
+
+    if senha != senha_admin:
+        print("Acesso negado⚠️")
+        return
+
+    # Verifica se há registros no arquivo
+    try:
+        with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
+            leitor = list(csv.reader(arquivo))
+            if not leitor:
+                print("Não há registros no sistema.")
+                return
+    except FileNotFoundError:
+        print("Não há registros no sistema.")
+        return
+
+    print("\n=== Limpeza de Registros ===")
+    print("1. Limpar TODOS os registros")
+    print("2. Limpar registros de um FUNCIONÁRIO")
+    print("3. Limpar registros de um FUNCIONÁRIO em uma DATA específica")
+    print("4. Cancelar")
+
+    escolha = input("Escolha uma opção: ").strip()
+
+    if escolha == "1":
+        confirmacao = input("Tem certeza que deseja apagar TODOS os registros? (s/n): ").strip().lower()
+        if confirmacao == 's':
+            with open(ARQUIVO_REGISTRO, mode='w', newline='') as arquivo:
+                pass
+            print("Todos os registros foram apagados com sucesso.")
+        else:
+            print("Ação cancelada.")
+
+    elif escolha == "2":
+        nome = input("Digite o nome do funcionário: ").strip()
+        registros_existem = False
+        novos_registros = []
+
+        with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
+            leitor = csv.reader(arquivo)
+            for linha in leitor:
+                if linha[0].lower() == nome.lower():
+                    registros_existem = True
+                else:
+                    novos_registros.append(linha)
+
+        if not registros_existem:
+            print("Não há registros para esse funcionário.")
+            return
+
         with open(ARQUIVO_REGISTRO, mode='w', newline='') as arquivo:
-            pass  # Apenas sobrescreve o arquivo com nada
-        print("Todos os registros foram apagados com sucesso.")
+            escritor = csv.writer(arquivo)
+            escritor.writerows(novos_registros)
+        print(f"Registros do funcionário '{nome}' foram apagados com sucesso.")
+
+    elif escolha == "3":
+        nome = input("Digite o nome do funcionário: ").strip()
+        data = input("Digite a data (dd/mm/aaaa): ").strip()
+        registros_existem = False
+        novos_registros = []
+
+        with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
+            leitor = csv.reader(arquivo)
+            for linha in leitor:
+                if linha[0].lower() == nome.lower() and linha[1] == data:
+                    registros_existem = True
+                else:
+                    novos_registros.append(linha)
+
+        if not registros_existem:
+            print("Não há registros desse funcionário na data informada.")
+            return
+
+        with open(ARQUIVO_REGISTRO, mode='w', newline='') as arquivo:
+            escritor = csv.writer(arquivo)
+            escritor.writerows(novos_registros)
+        print(f"Registros de '{nome}' na data '{data}' foram apagados com sucesso.")
+
     else:
         print("Ação cancelada.")
 
