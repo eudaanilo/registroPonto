@@ -74,6 +74,15 @@ def visualizar_registros():
     except FileNotFoundError:
         print("Nenhum registro encontrado.")
 
+def limpar_registros():
+    confirmacao = input("Tem certeza que deseja apagar TODOS os registros? (s/n): ").strip().lower()
+    if confirmacao == 's':
+        with open(ARQUIVO_REGISTRO, mode='w', newline='') as arquivo:
+            pass  # Apenas sobrescreve o arquivo com nada
+        print("Todos os registros foram apagados com sucesso.")
+    else:
+        print("Ação cancelada.")
+
 def menu():
     while True:
         print("\n=== Sistema de Registro de Ponto ===")
