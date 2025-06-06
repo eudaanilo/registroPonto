@@ -1,5 +1,6 @@
 import csv
 from datetime import datetime
+from collections import defaultdict
 
 ARQUIVO_REGISTRO = "registro_ponto.csv"
 
@@ -25,11 +26,31 @@ def registrar_ponto():
         return
     
     tipo = tipos[opcao]
-    
     agora = datetime.now()
     data = agora.strftime("%d/%m/%Y")
     hora = agora.strftime("%H:%M:%S")
     
+    registros_dia = []
+    try:
+        with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
+            leitor = csv.reader(arquivo)
+            for linha in leitor:
+                nome_reg, data_reg, hora_reg, tipo_reg = linha
+                if nome_reg == nome and data_reg == data:
+                    registros_dia.append(tipo_reg)
+    except FileNotFoundError:
+        pass
+
+    if tipo == "Primeira Saída" and "Primeira Entrada" not in registros_dia:
+        print("Erro: não é possível registrar Primeira Saída sem Primeira Entrada.")
+        return
+    if tipo == "Segunda Entrada" and "Primeira Saída" not in registros_dia:
+        print("Erro: não é possível registrar Segunda Entrada sem Primeira Saída.")
+        return
+    if tipo == "Segunda Saída" and "Segunda Entrada" not in registros_dia:
+        print("Erro: não é possível registrar Segunda Saída sem Segunda Entrada.")
+        return
+
     with open(ARQUIVO_REGISTRO, mode='a', newline='') as arquivo:
         writer = csv.writer(arquivo)
         writer.writerow([nome, data, hora, tipo])
@@ -40,10 +61,16 @@ def visualizar_registros():
     try:
         with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
             leitor = csv.reader(arquivo)
-            print(f"{'Nome':<20} {'Data':<12} {'Hora':<10} {'Turno':<20}")
-            print("-" * 65)
+            registros = defaultdict(list)
             for linha in leitor:
-                print(f"{linha[0]:<20} {linha[1]:<12} {linha[2]:<10} {linha[3]:<20}")
+                nome, data, hora, tipo = linha
+                registros[nome].append((data, hora, tipo))
+
+            for nome in sorted(registros.keys()):
+                print(f"\n== {nome.upper()} ==")
+                for data, hora, tipo in registros[nome]:
+                    print(f"{nome:<20} {data:<12} {hora:<10} {tipo:<20}")
+
     except FileNotFoundError:
         print("Nenhum registro encontrado.")
 
