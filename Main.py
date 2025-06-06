@@ -1,35 +1,61 @@
 import csv
+import os
 from datetime import datetime
+import getpass
 
 ARQUIVO_REGISTRO = "registros.csv"
+ARQUIVO_USUARIOS = "usuarios.csv"
 
-USUARIOS = {
-    "admin": {"senha": "admin123", "tipo": "admin"},
-    "danilo": {"senha": "1234", "tipo": "funcionario"},
-    "livia": {"senha": "abcd", "tipo": "funcionario"},
-}
+# Se arquivo de usuários não existe, cria um admin padrão
+def inicializar_usuarios():
+    if not os.path.exists(ARQUIVO_USUARIOS):
+        with open(ARQUIVO_USUARIOS, mode='w', newline='') as arquivo:
+            escritor = csv.writer(arquivo)
+            escritor.writerow(["usuario", "senha", "tipo"])
+            escritor.writerow(["admin", "admin123", "admin"])
+
+def carregar_usuarios():
+    usuarios = {}
+    try:
+        with open(ARQUIVO_USUARIOS, mode='r') as arquivo:
+            leitor = csv.DictReader(arquivo)
+            for linha in leitor:
+                usuarios[linha["usuario"]] = {
+                    "senha": linha["senha"],
+                    "tipo": linha["tipo"]
+                }
+    except FileNotFoundError:
+        inicializar_usuarios()
+        return carregar_usuarios()
+    return usuarios
+
+def salvar_usuarios(usuarios):
+    with open(ARQUIVO_USUARIOS, mode='w', newline='') as arquivo:
+        escritor = csv.writer(arquivo)
+        escritor.writerow(["usuario", "senha", "tipo"])
+        for usuario, dados in usuarios.items():
+            escritor.writerow([usuario, dados["senha"], dados["tipo"]])
 
 def login():
+    usuarios = carregar_usuarios()
     print("=== LOGIN ===")
     nome = input("Usuário (ou digite 'voltar' para sair): ").strip().lower()
     if nome == 'voltar':
         return None
-    
-    senha = input("Senha (ou digite 'voltar' para sair): ").strip()
+
+    senha = getpass.getpass("Senha (ou digite 'voltar' para sair): ").strip()
     if senha == 'voltar':
         return None
 
-    if nome in USUARIOS and USUARIOS[nome]["senha"] == senha:
+    if nome in usuarios and usuarios[nome]["senha"] == senha:
         print(f"Bem-vindo, {nome.title()}!")
-        return {"nome": nome, "tipo": USUARIOS[nome]["tipo"]}
+        return {"nome": nome, "tipo": usuarios[nome]["tipo"]}
     else:
         print("Credenciais inválidas.")
-        return False  # sinaliza login falhou
+        return False
 
 def registrar_ponto(usuario):
     nome = usuario["nome"].title()
-    tipo = usuario["tipo"]
-
     data = datetime.now().strftime("%d/%m/%Y")
     hora = datetime.now().strftime("%H:%M:%S")
 
@@ -51,7 +77,6 @@ def registrar_ponto(usuario):
 
     tipo_ponto = opcoes[int(escolha) - 1]
 
-    # Valida ordem dos registros
     registros_usuario = []
     try:
         with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
@@ -99,6 +124,29 @@ def exibir_registros():
                     print(f"{reg[0]:<20} {reg[1]}   {reg[2]}   {reg[3]}")
     except FileNotFoundError:
         print("Não há registros.")
+
+def limpar_registros(usuario):
+    if usuario["tipo"] != "admin":
+        print("Apenas administradores podem limpar registros.")
+        return
+
+    try:
+        with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
+            linhas = arquivo.readlines()
+            if not linhas:
+                print("Não há registros para limpar.")
+                return
+    except FileNotFoundError:
+        print("Não há registros para limpar.")
+        return
+
+    confirmar = input("Tem certeza que deseja limpar todos os registros? (s/n): ").strip().lower()
+    if confirmar == 's':
+        with open(ARQUIVO_REGISTRO, mode='w') as arquivo:
+            arquivo.write('')
+        print("Registros limpos com sucesso.")
+    else:
+        print("Operação cancelada.")
 
 def editar_registro(usuario):
     if usuario["tipo"] != "admin":
@@ -152,36 +200,110 @@ def editar_registro(usuario):
 
     print("Registro atualizado com sucesso.")
 
-def menu():
-    usuario = None
-    while usuario is None:
-        usuario = login()
-        if usuario is None:  # Usuário digitou 'voltar' para sair
-            print("Saindo do programa.")
-            return
-        elif usuario is False:  # Login falhou, tenta novamente
-            usuario = None
+def cadastrar_usuario(usuario):
+    if usuario["tipo"] != "admin":
+        print("Acesso negado. Apenas administradores podem cadastrar usuários.")
+        return
 
+    usuarios = carregar_usuarios()
+    novo_usuario = input("Digite o nome do novo usuário: ").strip().lower()
+
+    if novo_usuario in usuarios:
+        print("Usuário já existe.")
+        return
+
+    nova_senha = getpass.getpass("Digite a senha para o novo usuário: ").strip()
+    tipo = input("Tipo do usuário (admin/funcionario): ").strip().lower()
+    if tipo not in ["admin", "funcionario"]:
+        print("Tipo inválido.")
+        return
+
+    usuarios[novo_usuario] = {"senha": nova_senha, "tipo": tipo}
+    salvar_usuarios(usuarios)
+    print(f"Usuário '{novo_usuario}' criado com sucesso.")
+
+def alterar_senha(usuario):
+    usuarios = carregar_usuarios()
+    nome = usuario["nome"]
+    print(f"Alterando senha para o usuário {nome}")
+
+    senha_atual = getpass.getpass("Digite sua senha atual: ").strip()
+    if senha_atual != usuarios[nome]["senha"]:
+        print("Senha atual incorreta.")
+        return
+
+    nova_senha = getpass.getpass("Digite a nova senha: ").strip()
+    confirmar_senha = getpass.getpass("Confirme a nova senha: ").strip()
+    if nova_senha != confirmar_senha:
+        print("As senhas não coincidem.")
+        return
+
+    usuarios[nome]["senha"] = nova_senha
+    salvar_usuarios(usuarios)
+    print("Senha alterada com sucesso.")
+
+def menu_admin(usuario):
     while True:
-        print("\n===== MENU PRINCIPAL =====")
+        print("\n=== MENU ADMINISTRADOR ===")
         print("1. Registrar ponto")
-        print("2. Visualizar registros")
-        print("3. Editar registro (Admin)")
-        print("4. Sair")
+        print("2. Exibir registros")
+        print("3. Editar registro")
+        print("4. Limpar registros")
+        print("5. Cadastrar usuário")
+        print("6. Alterar minha senha")
+        print("7. Logout")
+        escolha = input("Escolha uma opção: ").strip()
 
-        opcao = input("Escolha uma opção: ").strip()
-
-        if opcao == "1":
+        if escolha == '1':
             registrar_ponto(usuario)
-        elif opcao == "2":
+        elif escolha == '2':
             exibir_registros()
-        elif opcao == "3":
+        elif escolha == '3':
             editar_registro(usuario)
-        elif opcao == "4":
+        elif escolha == '4':
+            limpar_registros(usuario)
+        elif escolha == '5':
+            cadastrar_usuario(usuario)
+        elif escolha == '6':
+            alterar_senha(usuario)
+        elif escolha == '7':
             print("Saindo...")
             break
         else:
             print("Opção inválida.")
 
+def menu_funcionario(usuario):
+    while True:
+        print(f"\n=== MENU FUNCIONÁRIO ({usuario['nome'].title()}) ===")
+        print("1. Registrar ponto")
+        print("2. Alterar minha senha")
+        print("3. Logout")
+        escolha = input("Escolha uma opção: ").strip()
+
+        if escolha == '1':
+            registrar_ponto(usuario)
+        elif escolha == '2':
+            alterar_senha(usuario)
+        elif escolha == '3':
+            print("Saindo...")
+            break
+        else:
+            print("Opção inválida.")
+
+def main():
+    inicializar_usuarios()
+    while True:
+        resultado = login()
+        if resultado is None:
+            print("Voltando...")
+            break
+        if resultado is False:
+            continue
+        usuario = resultado
+        if usuario["tipo"] == "admin":
+            menu_admin(usuario)
+        else:
+            menu_funcionario(usuario)
+
 if __name__ == "__main__":
-    menu()
+    main()
