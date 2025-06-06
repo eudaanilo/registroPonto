@@ -1,10 +1,24 @@
+import Entrar
 import csv
 from datetime import datetime
 from collections import defaultdict
 
 ARQUIVO_REGISTRO = "registro_ponto.csv"
 
+USUARIOS = {
+    "admin": {"senha": "admin123", "tipo": "admin"},
+    "danilo": {"senha": "1234", "tipo": "funcionario"},
+    "livia": {"senha": "abcd", "tipo": "funcionario"},
+}
+
+usuario_logado = Entrar.login()
+if not usuario_logado:
+    print("Login falhou. Encerrando o programa.")
+    exit()
+
 def registrar_ponto():
+    usuario_logado["nome"]  # nome da pessoa logada
+    usuario_logado["tipo"]  # "admin" ou "funcionario"
     nome = input("Digite o nome do funcionário: ").strip()
     
     print("\nEscolha o tipo de registro:")
@@ -163,6 +177,66 @@ def limpar_registros():
 
     else:
         print("Ação cancelada.")
+
+def editar_registro():
+    senha_admin = "admin123"
+    print("\n⚙️  Função de Edição de Registros — Apenas para Administradores")
+    
+    senha = input("Digite a senha de administrador: ").strip()
+    if senha != senha_admin:
+        print("Acesso negado.")
+        return
+    
+    nome_admin = input("Digite seu nome de administrador: ").strip()
+    
+    nome_funcionario = input("Digite o nome do funcionário: ").strip()
+    data_alvo = input("Digite a data do registro (dd/mm/aaaa): ").strip()
+
+    try:
+        with open(ARQUIVO_REGISTRO, mode='r') as arquivo:
+            leitor = list(csv.reader(arquivo))
+    except FileNotFoundError:
+        print("Arquivo de registros não encontrado.")
+        return
+
+    # Encontrar registros do funcionário na data escolhida
+    encontrados = []
+    for i, linha in enumerate(leitor):
+        if linha[0].lower() == nome_funcionario.lower() and linha[1] == data_alvo:
+            encontrados.append((i, linha))
+
+    if not encontrados:
+        print("Nenhum registro encontrado para esse funcionário nessa data.")
+        return
+
+    print(f"\nRegistros de {nome_funcionario} em {data_alvo}:")
+    for idx, (indice, linha) in enumerate(encontrados, 1):
+        print(f"{idx}. {linha[0]:<15} {linha[1]:<12} {linha[2]:<10} {linha[3]}")
+
+    try:
+        escolha = int(input("\nEscolha o número do registro que deseja editar: "))
+        if escolha < 1 or escolha > len(encontrados):
+            print("Escolha inválida.")
+            return
+    except ValueError:
+        print("Entrada inválida.")
+        return
+
+    indice_original, registro = encontrados[escolha - 1]
+    nova_hora = input("Digite a nova hora (hh:mm:ss): ").strip()
+    justificativa = input("Digite a justificativa da alteração: ").strip()
+
+    hora_atual = datetime.now().strftime("%H:%M:%S")
+    
+    registro[2] = nova_hora
+    registro[3] += f" (Editado por: {nome_admin} às {hora_atual}. Justificativa: {justificativa})"
+    leitor[indice_original] = registro
+
+    with open(ARQUIVO_REGISTRO, mode='w', newline='') as arquivo:
+        escritor = csv.writer(arquivo)
+        escritor.writerows(leitor)
+
+    print("✅ Registro atualizado com sucesso.")
 
 def menu():
     while True:
