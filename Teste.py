@@ -159,9 +159,12 @@ class SistemaPonto:
             registros_por_usuario.setdefault(usuario, []).append(r)
 
         for usuario, linhas in registros_por_usuario.items():
-            texto.insert(tk.END, f"== {usuario.upper()} ==")
+            texto.insert(tk.END, f"
+== {usuario.upper()} ==
+")
             for linha in linhas:
-                texto.insert(tk.END, f"{linha[0]:20s} {linha[1]}   {linha[2]}   {linha[3]}")
+                texto.insert(tk.END, f"{linha[0]:20s} {linha[1]}   {linha[2]}   {linha[3]}
+")
 
     def cadastrar_usuario(self):
         novo_usuario = simpledialog.askstring("Cadastro", "Novo usuário:")
