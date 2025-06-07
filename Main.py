@@ -98,6 +98,10 @@ class SistemaPonto:
         else:
             messagebox.showerror("Erro", "Usuário ou senha inválidos.")
 
+        if usuarios[nome].get("ativo", "sim") != "sim":
+            messagebox.showerror("Erro", "Este usuário está inativo.")
+            return
+
     def inativar_usuario(self):
         usuarios = carregar_usuarios()
         nome = simpledialog.askstring("Inativar Usuário", "Digite o nome do usuário a inativar:")
@@ -140,6 +144,7 @@ class SistemaPonto:
                 ("Cadastrar Usuário", self.cadastrar_usuario),
                 ("Listar Usuários", self.listar_usuarios),
                 ("Limpar Registros", self.confirmar_limpeza_registros),
+                ("Inativar Usuário", self.inativar_usuario),
                 ("Logout", self.logout)
             ]
         else:

@@ -1,5 +1,7 @@
-usuario,senha,tipo,ultimo_login
-admin,admin123,admin,07/06/2025 08:06:26
-fernando,fernando123,admin,nunca
-adriana,adriana123,admin,06/06/2025 23:11:26
-danilo,danilo123,funcionario,06/06/2025 23:10:49
+usuario,senha,tipo,ultimo_login,ativo
+Admin,admin123,admin,07/06/2025 08:35:13,sim
+Fernando,fernando123,admin,07/06/2025 08:34:15,sim
+Adriana,adriana123,admin,07/06/2025 08:33:17,sim
+Danilo,danilo123,funcionario,07/06/2025 08:34:39,sim
+Beatriz,beatriz123,funcionario,nunca,sim
+LiviaCosta, livia123, admin, funcionario, nunca
