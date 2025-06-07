@@ -12,8 +12,8 @@ def inicializar_usuarios():
     if not os.path.exists(ARQUIVO_USUARIOS):
         with open(ARQUIVO_USUARIOS, mode='w', newline='') as arquivo:
             escritor = csv.writer(arquivo)
-            escritor.writerow(["usuario", "senha", "tipo"])
-            escritor.writerow(["admin", "admin123", "admin"])
+            escritor.writerow(["usuario", "senha", "tipo", "ultimo_login"])
+            escritor.writerow(["admin", "admin123", "admin", "nunca"])
 
 def carregar_usuarios():
     usuarios = {}
@@ -23,7 +23,8 @@ def carregar_usuarios():
             for linha in leitor:
                 usuarios[linha["usuario"]] = {
                     "senha": linha["senha"],
-                    "tipo": linha["tipo"]
+                    "tipo": linha["tipo"],
+                    "ultimo_login": linha.get("ultimo_login", "nunca")
                 }
     except FileNotFoundError:
         inicializar_usuarios()
@@ -33,9 +34,9 @@ def carregar_usuarios():
 def salvar_usuarios(usuarios):
     with open(ARQUIVO_USUARIOS, mode='w', newline='') as arquivo:
         escritor = csv.writer(arquivo)
-        escritor.writerow(["usuario", "senha", "tipo"])
+        escritor.writerow(["usuario", "senha", "tipo", "ultimo_login"])
         for usuario, dados in usuarios.items():
-            escritor.writerow([usuario, dados["senha"], dados["tipo"]])
+            escritor.writerow([usuario, dados["senha"], dados["tipo"], dados.get("ultimo_login", "nunca")])
 
 def login():
     usuarios = carregar_usuarios()
@@ -49,6 +50,8 @@ def login():
         return None
 
     if nome in usuarios and usuarios[nome]["senha"] == senha:
+        usuarios[nome]["ultimo_login"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        salvar_usuarios(usuarios)
         print(f"Bem-vindo, {nome.title()}!")
         return {"nome": nome, "tipo": usuarios[nome]["tipo"]}
     else:
@@ -223,6 +226,20 @@ def cadastrar_usuario(usuario):
     salvar_usuarios(usuarios)
     print(f"Usuário '{novo_usuario}' criado com sucesso.")
 
+def mostrar_usuarios(usuario):
+    if usuario["tipo"] != "admin":
+        print("Apenas administradores podem visualizar essa informação.")
+        return
+
+    usuarios = carregar_usuarios()
+
+    print("\n=== LISTA DE USUÁRIOS ===")
+    print(f"Total de usuários: {len(usuarios)}\n")
+    for nome, dados in usuarios.items():
+        print(f"Usuário: {nome}")
+        print(f"Tipo: {dados['tipo']}")
+        print(f"Último login: {dados.get('ultimo_login', 'nunca')}\n")
+
 def alterar_senha(usuario):
     usuarios = carregar_usuarios()
     nome = usuario["nome"]
@@ -300,7 +317,9 @@ def menu_admin(usuario):
         print("4. Limpar registros")
         print("5. Cadastrar usuário")
         print("6. Alterar minha senha")
-        print("7. Logout")
+        print("7. Listar usuários do sistema")
+        print("8. Logout")
+        
         escolha = input("Escolha uma opção: ").strip()
 
         if escolha == '1':
@@ -316,6 +335,9 @@ def menu_admin(usuario):
         elif escolha == '6':
             alterar_senha(usuario)
         elif escolha == '7':
+            mostrar_usuarios(usuario)
+            break
+        elif escolha == '8':
             print("Saindo...")
             break
         else:

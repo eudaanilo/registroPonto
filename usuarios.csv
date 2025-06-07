@@ -1,2 +1,5 @@
-usuario,senha,tipo
-admin,admin123,admin
+usuario,senha,tipo,ultimo_login
+admin,admin123,admin,06/06/2025 23:09:04
+fernando,fernando123,admin,nunca
+adriana,adriana123,admin,06/06/2025 23:11:26
+danilo,danilo123,funcionario,06/06/2025 23:10:49
