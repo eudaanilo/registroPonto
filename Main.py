@@ -22,16 +22,17 @@ def carregar_usuarios():
             usuarios[linha["usuario"]] = {
                 "senha": linha["senha"],
                 "tipo": linha["tipo"],
-                "ultimo_login": linha["ultimo_login"]
+                "ultimo_login": linha["ultimo_login"],
+                "ativo": linha.get("ativo", "sim")
             }
     return usuarios
 
 def salvar_usuarios(usuarios):
     with open(ARQUIVO_USUARIOS, mode='w', newline='') as arquivo:
         escritor = csv.writer(arquivo)
-        escritor.writerow(["usuario", "senha", "tipo", "ultimo_login"])
+        escritor.writerow(["usuario", "senha", "tipo", "ultimo_login", "ativo"])
         for usuario, dados in usuarios.items():
-            escritor.writerow([usuario, dados["senha"], dados["tipo"], dados.get("ultimo_login", "nunca")])
+            escritor.writerow([usuario, dados["senha"], dados["tipo"], dados.get("ultimo_login", "nunca"), dados.get("ativo", "sim")])
 
 def registrar_ultimo_login(nome_usuario):
     usuarios = carregar_usuarios()
@@ -63,6 +64,8 @@ class SistemaPonto:
     def __init__(self, root):
         self.root = root
         self.root.title("Sistema de Registro de Ponto")
+        self.root.geometry("800x600")  # Define tamanho maior
+        self.root.bind("<Return>", lambda event: self.login())  # ENTER chama login
         self.usuario_atual = None
         self.tela_login()
 
@@ -94,6 +97,20 @@ class SistemaPonto:
                 self.menu_funcionario()
         else:
             messagebox.showerror("Erro", "Usuário ou senha inválidos.")
+
+    def inativar_usuario(self):
+        usuarios = carregar_usuarios()
+        nome = simpledialog.askstring("Inativar Usuário", "Digite o nome do usuário a inativar:")
+        if not nome or nome not in usuarios:
+            messagebox.showerror("Erro", "Usuário não encontrado.")
+            return
+        if nome == "admin":
+            messagebox.showerror("Erro", "Você não pode inativar o usuário admin.")
+            return
+
+        usuarios[nome]["ativo"] = "não"
+        salvar_usuarios(usuarios)
+        messagebox.showinfo("Sucesso", f"Usuário {nome} inativado com sucesso.")
 
     def logout(self):
         self.usuario_atual = None
