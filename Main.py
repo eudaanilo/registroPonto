@@ -1,7 +1,8 @@
 import csv
 import os
+import sys
 from datetime import datetime
-import getpass
+
 
 ARQUIVO_REGISTRO = "registros.csv"
 ARQUIVO_USUARIOS = "usuarios.csv"
@@ -43,7 +44,7 @@ def login():
     if nome == 'voltar':
         return None
 
-    senha = getpass.getpass("Senha (ou digite 'voltar' para sair): ").strip()
+    senha = input_senha_com_asteriscos("Senha: ").strip()
     if senha == 'voltar':
         return None
 
@@ -212,7 +213,7 @@ def cadastrar_usuario(usuario):
         print("Usuário já existe.")
         return
 
-    nova_senha = getpass.getpass("Digite a senha para o novo usuário: ").strip()
+    nova_senha = input_senha_com_asteriscos("Senha: ").strip()
     tipo = input("Tipo do usuário (admin/funcionario): ").strip().lower()
     if tipo not in ["admin", "funcionario"]:
         print("Tipo inválido.")
@@ -227,13 +228,13 @@ def alterar_senha(usuario):
     nome = usuario["nome"]
     print(f"Alterando senha para o usuário {nome}")
 
-    senha_atual = getpass.getpass("Digite sua senha atual: ").strip()
+    senha_atual = input_senha_com_asteriscos("Digite sua senha atual: ").strip()
     if senha_atual != usuarios[nome]["senha"]:
         print("Senha atual incorreta.")
         return
 
-    nova_senha = getpass.getpass("Digite a nova senha: ").strip()
-    confirmar_senha = getpass.getpass("Confirme a nova senha: ").strip()
+    nova_senha = input_senha_com_asteriscos("Digite a nova senha: ").strip()
+    confirmar_senha = input_senha_com_asteriscos("Confirme a nova senha: ").strip()
     if nova_senha != confirmar_senha:
         print("As senhas não coincidem.")
         return
@@ -241,6 +242,54 @@ def alterar_senha(usuario):
     usuarios[nome]["senha"] = nova_senha
     salvar_usuarios(usuarios)
     print("Senha alterada com sucesso.")
+
+def input_senha_com_asteriscos(prompt="Senha: "):
+    print(prompt, end='', flush=True)
+    senha = ''
+    if os.name == 'nt':
+        import msvcrt
+        while True:
+            tecla = msvcrt.getch()
+            if tecla in {b'\r', b'\n'}:
+                print()
+                break
+            elif tecla == b'\x08':  # backspace
+                if len(senha) > 0:
+                    senha = senha[:-1]
+                    sys.stdout.write('\b \b')
+                    sys.stdout.flush()
+            elif tecla == b'\x03':  # Ctrl+C
+                raise KeyboardInterrupt
+            else:
+                senha += tecla.decode('utf-8', 'ignore')
+                sys.stdout.write('*')
+                sys.stdout.flush()
+    else:
+        import termios
+        import tty
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            while True:
+                tecla = sys.stdin.read(1)
+                if tecla in ('\r', '\n'):
+                    print()
+                    break
+                elif tecla == '\x7f':  # backspace
+                    if len(senha) > 0:
+                        senha = senha[:-1]
+                        sys.stdout.write('\b \b')
+                        sys.stdout.flush()
+                elif tecla == '\x03':  # Ctrl+C
+                    raise KeyboardInterrupt
+                else:
+                    senha += tecla
+                    sys.stdout.write('*')
+                    sys.stdout.flush()
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return senha
 
 def menu_admin(usuario):
     while True:
